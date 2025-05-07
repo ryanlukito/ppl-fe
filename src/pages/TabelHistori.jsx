@@ -5,18 +5,21 @@ const data = [
   {
     nomor_antrean: "A001",
     nama_pasien: "Alex",
+    spesialis_dokter: "Jantung",
     nama_dokter: "Dokter A",
     jam_kunjungan: "09.00",
   },
   {
     nomor_antrean: "A001",
     nama_pasien: "Alex",
+    spesialis_dokter: "Jantung",
     nama_dokter: "Dokter A",
     jam_kunjungan: "09.00",
   },
   {
     nomor_antrean: "A001",
     nama_pasien: "Alex",
+    spesialis_dokter: "Jantung",
     nama_dokter: "Dokter A",
     jam_kunjungan: "09.00",
   },
@@ -34,6 +37,7 @@ const TabelHistori = () => {
           <tr>
             <th className="border px-4 py-2">Nomor Antrean</th>
             <th className="border px-4 py-2">Nama Pasien</th>
+            <th className="border px-4 py-2">Spesialis Dokter</th>
             <th className="border px-4 py-2">Nama Dokter</th>
             <th className="border px-4 py-2">Jam Kunjungan</th>
           </tr>
