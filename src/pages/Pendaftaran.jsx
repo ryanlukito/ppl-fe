@@ -10,14 +10,18 @@ const Pendaftaran = () => {
   const [nama, setNama] = useState("");
   const [spesialis, setSpesialis] = useState("");
   const [spesialisOptions, setSpesialisOptions] = useState([]);
-  const [dokter, setDokter] = useState("");
+  const [dokter, setDokter] = useState(null);
   const [dokterOptions, setDokterOptions] = useState([]);
-  const [jam, setJam] = useState("");
+  const [jam, setJam] = useState({ id: "", time: "" });
+  const [availJam, setAvailJam] = useState([]);
+  const [tiketData, setTiketData] = useState(null);
 
   useEffect(() => {
     const fetchSpecializations = async () => {
       try {
-        const response = await axios.get("/api/doctors/specializations");
+        const response = await axios.get(
+          "http://localhost:3000/api/doctors/specializations"
+        );
         const specializations =
           response.data.data?.map((item) => item.specialization) || [];
         setSpesialisOptions(specializations);
@@ -36,11 +40,11 @@ const Pendaftaran = () => {
     const fetchDoctors = async () => {
       try {
         const response = await axios.get(
-          `/api/doctors/specializations/${spesialis}`
+          `http://localhost:3000/api/doctors/specialization/${spesialis}`
         );
         setDokterOptions(response.data.data);
         setDokter("");
-        console.log(response.data);
+        console.log(response?.data.data);
       } catch (error) {
         console.error("Error fetching doctors:", error);
       }
@@ -49,18 +53,61 @@ const Pendaftaran = () => {
     fetchDoctors();
   }, [spesialis]);
 
-  function generateQueueNumber() {
-    const alphabet = String.fromCharCode(65 + Math.floor(Math.random() * 26)); // 'A' to 'Z'
-    const number = String(Math.floor(Math.random() * 100)).padStart(3, "0"); // '00' to '99'
-    return alphabet + number;
-  }
+  useEffect(() => {
+    if (!dokter) return;
 
-  const handleDaftarAntrean = () => {
+    const fetchAvailTime = async () => {
+      try {
+        const response = await axios.get(
+          `http://localhost:3000/api/time-slots/available/${dokter?.id}`
+        );
+        console.log(response.data.data);
+        setAvailJam(response.data.data);
+        // setJam("");
+      } catch (error) {
+        console.error("Error fetching time:", error);
+      }
+    };
+
+    fetchAvailTime();
+  }, [dokter]);
+
+  // function generateQueueNumber() {
+  //   const alphabet = String.fromCharCode(65 + Math.floor(Math.random() * 26)); // 'A' to 'Z'
+  //   const number = String(Math.floor(Math.random() * 100)).padStart(3, "0"); // '00' to '99'
+  //   return alphabet + number;
+  // }
+
+  const handleDaftarAntrean = async (body) => {
     if (!nama || !spesialis || !dokter || !jam) {
       alert("Semua input harus diisi terlebih dahulu!");
       return;
     }
-    setDaftarAntrean(true);
+    try {
+      const response = await axios.post(
+        "http://localhost:3000/api/patient-queues",
+        body
+      );
+
+      const rawData = response?.data.data;
+      const time = new Date(
+        rawData.visitTime.time_slot.replace("Z", "")
+      ).toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+
+      const newData = {
+        ...rawData,
+        jam_kunjungan: time,
+      };
+      setTiketData(newData);
+      setDaftarAntrean(true);
+      console.log(response.data.data);
+    } catch (error) {
+      console.error("Error post data:", error);
+    }
   };
 
   return (
@@ -71,7 +118,7 @@ const Pendaftaran = () => {
       </h1>
       <form action="" className="w-1/2">
         <div className="flex flex-col mb-4">
-          <label htmlFor="">Nama</label>
+          <label htmlFor="Nama">Nama</label>
           <input
             value={nama}
             onChange={(e) => setNama(e.target.value)}
@@ -79,16 +126,18 @@ const Pendaftaran = () => {
             placeholder="Insert nama anda di sini"
             className="w-full border-gray-400 border rounded-md p-1"
             required
+            id="Nama"
           />
         </div>
         <div className="flex flex-col mb-4">
-          <label htmlFor="">Spesialis Dokter</label>
+          <label htmlFor="Spesialis Dokter">Spesialis Dokter</label>
           <select
             value={spesialis}
             onChange={(e) => setSpesialis(e.target.value)}
             placeholder="Pilih dokter yang anda inginkan di sini"
             className="w-full border-gray-400 border rounded-md p-1"
             required
+            id="Spesialis Dokter"
           >
             <option value="" disabled>
               Pilih spesialis dokter
@@ -98,53 +147,73 @@ const Pendaftaran = () => {
                 {spec}
               </option>
             ))}
-            {/* <option value="Jantung">Jantung</option>
-            <option value="Paru-Paru">Paru-Paru</option>
-            <option value="Saraf">Saraf</option> */}
           </select>
         </div>
         <div className="flex flex-col mb-4">
-          <label htmlFor="">Nama Dokter</label>
+          <label htmlFor="Nama Dokter">Nama Dokter</label>
           <select
-            value={dokter}
-            onChange={(e) => setDokter(e.target.value)}
+            value={dokter?.id || ""}
+            onChange={(e) => {
+              const selectedDoctor = dokterOptions.find(
+                (d) => d.id === parseInt(e.target.value)
+              );
+              setDokter(selectedDoctor);
+            }}
             placeholder="Pilih dokter yang anda inginkan di sini"
             className="w-full border-gray-400 border rounded-md p-1"
             required
+            id="Nama Dokter"
           >
             <option value="" disabled>
               Pilih dokter
             </option>
-            {dokterOptions.map((doc, index) => (
-              <option
-                value={typeof doc === "string" ? doc : doc.name}
-                key={index}
-              >
-                {typeof doc === "string" ? doc : doc.name}
+            {dokterOptions.map((d) => (
+              <option value={d.id} key={d.id}>
+                {d.name}
               </option>
             ))}
-            {/* <option value="Dokter A">Dokter A</option>
-            <option value="Dokter B">Dokter B</option>
-            <option value="Dokter C">Dokter C</option> */}
           </select>
         </div>
         <div className="flex flex-col">
-          <label htmlFor="">Jam Kunjungan</label>
+          <label htmlFor="Jam Kunjungan">Jam Kunjungan</label>
           <select
-            value={jam}
-            onChange={(e) => setJam(e.target.value)}
+            value={jam.id}
+            onChange={(e) => {
+              const selected = availJam.find(
+                (j) => j.id === parseInt(e.target.value)
+              );
+              const formatted = new Date(
+                selected.time_slot.replace("Z", "")
+              ).toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+              });
+              setJam({ id: selected.id, time: formatted });
+            }}
             placeholder="Pilih dokter yang anda inginkan di sini"
             className="w-full border-gray-400 border rounded-md p-1"
             required
+            id="Jam Kunjungan"
           >
             <option value="" disabled>
               Pilih jam kunjungan
             </option>
-            <option value="07:00">07:00</option>
-            <option value="09:00">09:00</option>
-            <option value="11:00">11:00</option>
-            <option value="14:00">14:00</option>
-            <option value="16:00">16:00</option>
+            {availJam.map((slot) => {
+              const formattedTime = new Date(
+                slot.time_slot.replace("Z", "")
+              ).toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+              });
+
+              return (
+                <option value={slot.id} key={slot.id}>
+                  {formattedTime}
+                </option>
+              );
+            })}
           </select>
         </div>
         <div className="w-full flex items-center justify-center mt-3">
@@ -152,7 +221,13 @@ const Pendaftaran = () => {
             <button
               type="button"
               className="p-2 bg-black rounded-md text-white"
-              onClick={handleDaftarAntrean}
+              onClick={() =>
+                handleDaftarAntrean({
+                  patient_name: nama,
+                  doctor_id: dokter?.id,
+                  visit_time_id: jam?.id,
+                })
+              }
             >
               Daftar Antrean
             </button>
@@ -165,17 +240,18 @@ const Pendaftaran = () => {
           </div>
         </div>
       </form>
-      {daftarAntrean && (
+      {daftarAntrean && tiketData && (
         <div
+          data-testid="tiket-modal"
           id="tiket-modal"
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
         >
           <Tiket
-            nomor_antrean={generateQueueNumber()}
-            nama_pasien={nama}
-            spesialis_dokter={spesialis}
-            nama_dokter={dokter}
-            jam_kunjungan={jam}
+            nomor_antrean={tiketData.queue_number}
+            nama_pasien={tiketData.patient_name}
+            spesialis_dokter={tiketData.doctor?.specialization}
+            nama_dokter={tiketData.doctor?.name}
+            jam_kunjungan={tiketData.visitTime?.formatted_time}
           />
         </div>
       )}
